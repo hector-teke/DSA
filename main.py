@@ -4,7 +4,7 @@ from RSAcipher import encryption, decryption, generate_keys
 import tkinter as tk
 from tkinter import filedialog
 import base64
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox
 import sys
 
@@ -95,6 +95,7 @@ class Window(QWidget):
     def initializeUI(self):
         self.setGeometry(100, 100, 680, 370)  # PosX, PosY, Width, Height
         self.setWindowTitle("Digital Signature Algorithm")
+        self.setWindowIcon(QIcon('resources/sign.png'))
         self.generate_layout()
         self.show()
 
@@ -138,7 +139,37 @@ class Window(QWidget):
         import_file_button.move(500, keys_height + 40)
         import_file_button.clicked.connect(self.import_file)
 
+        # File Information
 
+        info_height = 110
+
+        self.icon = QLabel(self)
+        self.icon.setPixmap(QPixmap("resources/file.png").scaled(120, 120))
+        self.icon.move(40, info_height)
+
+        self.name = QLineEdit(self)
+        self.name.setReadOnly(True)
+        self.name.setPlaceholderText("Name")
+        self.name.resize(400, 24)  # Width x Height
+        self.name.move(200, info_height + 10)
+
+        self.path = QLineEdit(self)
+        self.path.setReadOnly(True)
+        self.path.setPlaceholderText("Path")
+        self.path.resize(400, 24)  # Width x Height
+        self.path.move(200, info_height + 50)
+
+        self.size = QLineEdit(self)
+        self.size.setReadOnly(True)
+        self.size.setPlaceholderText("Size")
+        self.size.resize(100, 24)  # Width x Height
+        self.size.move(200, info_height + 90)
+
+        self.type = QLineEdit(self)
+        self.type.setReadOnly(True)
+        self.type.setPlaceholderText("Type")
+        self.type.resize(280, 24)  # Width x Height
+        self.type.move(320, info_height + 90)
 
 
 
@@ -157,7 +188,37 @@ class Window(QWidget):
 
     def import_file(self):
         file = select_file("*")
-        file_description(file)
+        info = os.stat(file)
+
+        self.path.setText(file)
+        self.name.setText(os.path.basename(file))
+        self.size.setText(f'{info.st_size} bytes')
+
+        ext = os.path.splitext(file)[-1]
+
+        if ext == ".pdf":
+            self.icon.setPixmap(QPixmap("resources/pdf.png").scaled(120, 120))
+            self.type.setText(f'Portable Document File ({ext})')
+        elif ext == ".docx":
+            self.icon.setPixmap(QPixmap("resources/docx.png").scaled(120, 120))
+            self.type.setText(f'Microsoft Word Document ({ext})')
+        elif ext == ".rar":
+            self.icon.setPixmap(QPixmap("resources/rar.png").scaled(120, 120))
+            self.type.setText(f'Compressed file ({ext})')
+        elif ext == ".txt":
+            self.icon.setPixmap(QPixmap("resources/txt.png").scaled(120, 120))
+            self.type.setText(f'Plain text ({ext})')
+        elif ext == ".xml":
+            self.icon.setPixmap(QPixmap("resources/xml.png").scaled(120, 120))
+            self.type.setText(f'Extensible Markup Language document ({ext})')
+        elif ext == ".zip":
+            self.icon.setPixmap(QPixmap("resources/zip.png").scaled(120, 120))
+            self.type.setText(f'Compressed file ({ext})')
+        else:
+            self.icon.setPixmap(QPixmap("resources/file.png").scaled(120, 120))
+            self.type.setText(ext)
+
+
 
 
 
