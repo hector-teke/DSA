@@ -120,6 +120,24 @@ class Window(QWidget):
         generate_keys_button.move(20, keys_height + 40)
         generate_keys_button.clicked.connect(self.generateKeys)
 
+        import_public_button = QPushButton(self)
+        import_public_button.setText("Import Public Key")
+        import_public_button.resize(160, 30)
+        import_public_button.move(180, keys_height + 40)
+        import_public_button.clicked.connect(self.import_public)
+
+        import_private_button = QPushButton(self)
+        import_private_button.setText("Import Private Key")
+        import_private_button.resize(160, 30)
+        import_private_button.move(340, keys_height + 40)
+        import_private_button.clicked.connect(self.import_private)
+
+        import_file_button = QPushButton(self)
+        import_file_button.setText("Import File")
+        import_file_button.resize(160, 30)
+        import_file_button.move(500, keys_height + 40)
+        import_file_button.clicked.connect(self.import_file)
+
 
 
 
@@ -129,7 +147,17 @@ class Window(QWidget):
         self.pubkey, self.privkey, self.module = generate_keys(self.bits_input.value())
         export_keys(self.module, self.pubkey, self.privkey)
 
+    def import_public(self):
+        file = select_file("pub")
+        self.module, self.pubkey = read_key_file(file)
 
+    def import_private(self):
+        file = select_file("priv")
+        self.module, self.privkey = read_key_file(file)
+
+    def import_file(self):
+        file = select_file("*")
+        file_description(file)
 
 
 
