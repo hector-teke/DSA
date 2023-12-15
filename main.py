@@ -29,30 +29,36 @@ def read_key_file(path):            # * for any file
 
     return module, key
 
-def export_keys(modulo, pubkey, privkey):
-    content = f'({modulo},{pubkey})'
-    content_bytes = content.encode('utf-8')
-    content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+def export_keys(module, pubkey, privkey):
+    pub_content = f'({module},{pubkey})'
+    pub_content_bytes = pub_content.encode('utf-8')
+    pub_content_base64 = base64.b64encode(pub_content_bytes).decode('utf-8')
+
+    priv_content = f'({module},{privkey})'
+    priv_content_bytes = priv_content.encode('utf-8')
+    priv_content_base64 = base64.b64encode(priv_content_bytes).decode('utf-8')
 
     root = tk.Tk()
     root.withdraw()
 
+    # Export the public key
     file1_path = filedialog.asksaveasfilename(
         defaultextension=".pub",
         filetypes=[("Public key file", "*.pub")],
     )
 
     with open(file1_path, 'w') as file:
-        file.write(content_base64)
+        file.write(pub_content_base64)
     print(f"File saved at {file1_path}")
 
+    # Export the private key
     file2_path = filedialog.asksaveasfilename(
         defaultextension=".pub",
         filetypes=[("Private key file", "*.priv")],
     )
 
     with open(file2_path, 'w') as file:
-        file.write(content_base64)
+        file.write(priv_content_base64)
     print(f"File saved at {file2_path}")
 
 
@@ -77,6 +83,10 @@ def file_hash(path):  # Compute hash of a given file
 # USER INTERFACE ################################################################################
 
 class Window(QWidget):
+
+    pubkey = None
+    privkey = None
+    module = None
 
     def __init__(self):
         super().__init__()
@@ -107,6 +117,16 @@ class Window(QWidget):
         generate_keys_button.resize(70, 78)
         generate_keys_button.move(20, keys_height + 40)
         generate_keys_button.clicked.connect(self.generateKeys)
+
+
+
+
+
+
+    def generateKeys(self):
+        self.pubkey, self.privkey, self.module = generate_keys(self.bits_input.value())
+        export_keys(modulo)
+
 
 
 
