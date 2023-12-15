@@ -4,6 +4,8 @@ from RSAcipher import encryption, decryption, generate_keys
 import tkinter as tk
 from tkinter import filedialog
 import base64
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox
 import sys
 
 def select_file(extension):
@@ -71,9 +73,49 @@ def file_hash(path):  # Compute hash of a given file
 
         return sha_hash.hexdigest()     # Return hexadecimal value of hash
 
+
+# USER INTERFACE ################################################################################
+
+class Window(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.initializeUI()
+
+    def initializeUI(self):
+        self.setGeometry(100, 100, 680, 370)  # PosX, PosY, Width, Height
+        self.setWindowTitle("RSA Cipher")
+        self.generate_layout()
+        self.show()
+
+    def generate_layout(self):
+        keys_height = 20
+
+        bits_hint = QLabel(self)
+        bits_hint.setText("Bit length for the keys:")
+        bits_hint.setFont(QFont('Arial', 10))
+        bits_hint.move(240, keys_height + 5)
+
+        self.bits_input = QSpinBox(self)
+        self.bits_input.setRange(30, 1024)
+        self.bits_input.setValue(112)
+        self.bits_input.resize(50, 24)  # Width x Height
+        self.bits_input.move(380, keys_height)
+
+        generate_keys_button = QPushButton(self)
+        generate_keys_button.setText("Generate\nKeys")
+        generate_keys_button.resize(70, 78)
+        generate_keys_button.move(20, keys_height + 40)
+        generate_keys_button.clicked.connect(self.generateKeys)
+
+
+
+
+
+
 if __name__ == '__main__':
 
-    pub, priv, mod = generate_keys(112)
+    """pub, priv, mod = generate_keys(112)
 
     print(f'Pubkey: {pub}, Module: {mod}')
     print(f'Privkey: {priv}, Module: {mod}')
@@ -86,7 +128,7 @@ if __name__ == '__main__':
 
     module, pubkey = read_key_file(file)
 
-    print(f'Pubkey: {pubkey}, Module: {module}')
+    print(f'Pubkey: {pubkey}, Module: {module}')"""
 
 
 
