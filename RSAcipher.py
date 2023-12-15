@@ -58,10 +58,12 @@ def int_to_block(num):
 ###################### Encryption and decryption
 
 def encryption(OT, e, n):
+    #print(f'OT: {OT}')
     CT = []
     for blk in text_to_vector(OT):
+        #print(f'Block: {blk} ({type(blk)}), Key: {e}, Module: {n}')
         CT.append(pow(blk, e, n))
-
+    print(CT)
     return CT
 
 

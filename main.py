@@ -1,3 +1,4 @@
+import gc
 import os
 import hashlib
 from RSAcipher import encryption, decryption, generate_keys
@@ -8,12 +9,12 @@ from PyQt6.QtGui import QFont, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox
 import sys
 
-def select_file(extension):
+def select_file(extension, title):
     root = tk.Tk()
     root.withdraw()
 
     file_path = filedialog.askopenfilename(
-        title="Select file",
+        title=title,
         filetypes=[("Public key file", "*." + extension)]
     )
 
@@ -27,7 +28,7 @@ def read_key_file(path):
 
     module, key = content[1:-1].split(',')
 
-    return module, key
+    return int(module), int(key)
 
 def export_keys(module, pubkey, privkey):
     pub_content = f'({module},{pubkey})'
@@ -79,8 +80,9 @@ def file_hash(path):  # Compute hash of a given file
 
         return sha_hash.hexdigest()     # Return hexadecimal value of hash
 
+
 def export_signature(signature):
-    content_bytes = signature.encode('utf-8')
+    content_bytes = str(signature)[1:-1].encode('utf-8')
     content_base64 = base64.b64encode(content_bytes).decode('utf-8')
 
     root = tk.Tk()
@@ -92,16 +94,22 @@ def export_signature(signature):
     )
 
     with open(file_path, 'w') as file:
-        file.write(content_base64)
+        file.write("RSA_SHA3-512 " + content_base64)
     print(f"File saved at {file_path}")
+
+    return file_path
 
 def read_sign_file(path):
     with open(path, 'r') as file:
-        content_base64 = file.read()
+        content_base64 = file.read().split(" ")[1]  # Takes the RSA_SHA3-512 out
 
     content = base64.b64decode(content_base64).decode('utf-8')
+    # "RSA_SHA3-512 "
 
-    return content
+    text_vector = content.split(", ")
+    vector = [int(num_str) for num_str in text_vector]
+
+    return vector
 
 
 # USER INTERFACE ################################################################################
@@ -128,7 +136,7 @@ class Window(QWidget):
         keys_height = 20
 
         bits_hint = QLabel(self)
-        bits_hint.setText("Bit length for the keys:")
+        bits_hint.setText("Bit length for key generation:")
         bits_hint.setFont(QFont('Arial', 10))
         bits_hint.move(240, keys_height + 5)
 
@@ -136,7 +144,7 @@ class Window(QWidget):
         self.bits_input.setRange(30, 1024)
         self.bits_input.setValue(112)
         self.bits_input.resize(50, 24)  # Width x Height
-        self.bits_input.move(380, keys_height)
+        self.bits_input.move(410, keys_height)
 
         # Buttons
 
@@ -218,15 +226,15 @@ class Window(QWidget):
         export_keys(self.module, self.pubkey, self.privkey)
 
     def import_public(self):
-        file = select_file("pub")
+        file = select_file("pub","Select public key file")
         self.module, self.pubkey = read_key_file(file)
 
     def import_private(self):
-        file = select_file("priv")
+        file = select_file("priv","Select private key file")
         self.module, self.privkey = read_key_file(file)
 
     def import_file(self):
-        self.file = select_file("*")
+        self.file = select_file("*","Select a file for signing/verifying")
         info = os.stat(self.file)
 
         self.path.setText(self.file)
@@ -260,18 +268,20 @@ class Window(QWidget):
 
     def sign_document(self):
         hashed_document = file_hash(self.file)
+        #print(f'Priv: {self.privkey} Module: {self.module}\nDocument: {hashed_document}')
         signature = encryption(hashed_document, self.privkey, self.module)
-        export_signature(signature)
+        #print(f"Signature is working: {signature}")
+        path = export_signature(signature)
 
         message = QMessageBox()
         message.setWindowTitle("Information")
-        message.setText("Signature was exported succesfully")
+        message.setText(f"Signature was exported successfully to:\n{path}")
         message.setIcon(QMessageBox.Icon.Information)
         message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
         message.exec()
 
     def verify_signature(self):
-        file = select_file("sign")
+        file = select_file("sign","Select a signature file")
         signature = read_sign_file(file)
         original_hash = decryption(signature, self.pubkey, self.module)
         document_hash = file_hash(self.file)
@@ -306,7 +316,7 @@ if __name__ == '__main__':
 
     export_keys(mod, pub, priv)
 
-    file = select_file("pub")
+    file = select_file("pub","Select a file")
 
     file_description(file)
 
