@@ -9,6 +9,7 @@ from PyQt6.QtGui import QFont, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QMessageBox, QSpinBox
 import sys
 
+
 def select_file(extension, title):
     root = tk.Tk()
     root.withdraw()
@@ -18,7 +19,11 @@ def select_file(extension, title):
         filetypes=[("Public key file", "*." + extension)]
     )
 
+    if not file_path:
+        return None
+
     return file_path
+
 
 def read_key_file(path):
     with open(path, 'r') as file:
@@ -29,6 +34,7 @@ def read_key_file(path):
     module, key = content[1:-1].split(',')
 
     return int(module), int(key)
+
 
 def export_keys(module, pubkey, privkey):
     pub_content = f'({module},{pubkey})'
@@ -48,19 +54,27 @@ def export_keys(module, pubkey, privkey):
         filetypes=[("Public key file", "*.pub")],
     )
 
-    with open(file1_path, 'w') as file:
-        file.write(pub_content_base64)
-    print(f"File saved at {file1_path}")
+    if file1_path:
+        with open(file1_path, 'w') as file:
+            file.write(pub_content_base64)
+        print(f"File saved at {file1_path}")
 
-    # Export the private key
-    file2_path = filedialog.asksaveasfilename(
-        defaultextension=".pub",
-        filetypes=[("Private key file", "*.priv")],
-    )
+        # Export the private key
+        file2_path = filedialog.asksaveasfilename(
+            defaultextension=".pub",
+            filetypes=[("Private key file", "*.priv")],
+        )
 
-    with open(file2_path, 'w') as file:
-        file.write(priv_content_base64)
-    print(f"File saved at {file2_path}")
+        if file2_path:
+            with open(file2_path, 'w') as file:
+                file.write(priv_content_base64)
+            print(f"File saved at {file2_path}")
+        else:
+            return 0
+    else:
+        return 0
+
+    return 1
 
 
 def file_description(path):
@@ -78,7 +92,7 @@ def file_hash(path):  # Compute hash of a given file
             sha_hash.update(block)  # Process the current block
             block = file.read(4096)
 
-        return sha_hash.hexdigest()     # Return hexadecimal value of hash
+        return sha_hash.hexdigest()  # Return hexadecimal value of hash
 
 
 def export_signature(signature):
@@ -92,12 +106,15 @@ def export_signature(signature):
         defaultextension=".sign",
         filetypes=[("Signature file", "*.sign")],
     )
-
-    with open(file_path, 'w') as file:
-        file.write("RSA_SHA3-512 " + content_base64)
-    print(f"File saved at {file_path}")
+    if file_path:
+        with open(file_path, 'w') as file:
+            file.write("RSA_SHA3-512 " + content_base64)
+        print(f"File saved at {file_path}")
+    else:
+        return None
 
     return file_path
+
 
 def read_sign_file(path):
     with open(path, 'r') as file:
@@ -115,7 +132,6 @@ def read_sign_file(path):
 # USER INTERFACE ################################################################################
 
 class Window(QWidget):
-
     pubkey = None
     privkey = None
     module = None
@@ -220,95 +236,140 @@ class Window(QWidget):
         verify_button.move(340, sign_height)
         verify_button.clicked.connect(self.verify_signature)
 
-
     def generateKeys(self):
-        self.pubkey, self.privkey, self.module = generate_keys(self.bits_input.value())
-        export_keys(self.module, self.pubkey, self.privkey)
+        pub, priv, mod = generate_keys(self.bits_input.value())
+
+        message = QMessageBox()
+        message.setWindowTitle("Information")
+
+        if export_keys(mod, pub, priv):
+            self.pubkey = pub
+            self.privkey = priv
+            self.module = mod
+            message.setText(f"The keys were successfully exported\nand automatically loaded for being used.")
+            message.setIcon(QMessageBox.Icon.Information)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
+        else:
+            message.setText(f"The keys weren't generated.")
+            message.setIcon(QMessageBox.Icon.Warning)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
 
     def import_public(self):
-        file = select_file("pub","Select public key file")
-        self.module, self.pubkey = read_key_file(file)
+        file = select_file("pub", "Select public key file")
+        if file is not None:
+            self.module, self.pubkey = read_key_file(file)
 
     def import_private(self):
-        file = select_file("priv","Select private key file")
-        self.module, self.privkey = read_key_file(file)
+        file = select_file("priv", "Select private key file")
+        if file is not None:
+            self.module, self.privkey = read_key_file(file)
 
     def import_file(self):
-        self.file = select_file("*","Select a file for signing/verifying")
-        info = os.stat(self.file)
+        file = select_file("*", "Select a file for signing/verifying")
+        if file is not None:
+            self.file = file
+            info = os.stat(self.file)
 
-        self.path.setText(self.file)
-        self.name.setText(os.path.basename(self.file))
-        self.size.setText(f'{info.st_size} bytes')
+            self.path.setText(self.file)
+            self.name.setText(os.path.basename(self.file))
+            self.size.setText(f'{info.st_size} bytes')
 
-        ext = os.path.splitext(self.file)[-1]
+            ext = os.path.splitext(self.file)[-1]
 
-        if ext == ".pdf":
-            self.icon.setPixmap(QPixmap("resources/pdf.png").scaled(120, 120))
-            self.type.setText(f'Portable Document File ({ext})')
-        elif ext == ".docx":
-            self.icon.setPixmap(QPixmap("resources/docx.png").scaled(120, 120))
-            self.type.setText(f'Microsoft Word Document ({ext})')
-        elif ext == ".rar":
-            self.icon.setPixmap(QPixmap("resources/rar.png").scaled(120, 120))
-            self.type.setText(f'Compressed file ({ext})')
-        elif ext == ".txt":
-            self.icon.setPixmap(QPixmap("resources/txt.png").scaled(120, 120))
-            self.type.setText(f'Plain text ({ext})')
-        elif ext == ".xml":
-            self.icon.setPixmap(QPixmap("resources/xml.png").scaled(120, 120))
-            self.type.setText(f'Extensible Markup Language document ({ext})')
-        elif ext == ".zip":
-            self.icon.setPixmap(QPixmap("resources/zip.png").scaled(120, 120))
-            self.type.setText(f'Compressed file ({ext})')
-        else:
-            self.icon.setPixmap(QPixmap("resources/file.png").scaled(120, 120))
-            self.type.setText(ext)
-
+            if ext == ".pdf":
+                self.icon.setPixmap(QPixmap("resources/pdf.png").scaled(120, 120))
+                self.type.setText(f'Portable Document File ({ext})')
+            elif ext == ".docx":
+                self.icon.setPixmap(QPixmap("resources/docx.png").scaled(120, 120))
+                self.type.setText(f'Microsoft Word Document ({ext})')
+            elif ext == ".rar":
+                self.icon.setPixmap(QPixmap("resources/rar.png").scaled(120, 120))
+                self.type.setText(f'Compressed file ({ext})')
+            elif ext == ".txt":
+                self.icon.setPixmap(QPixmap("resources/txt.png").scaled(120, 120))
+                self.type.setText(f'Plain text ({ext})')
+            elif ext == ".xml":
+                self.icon.setPixmap(QPixmap("resources/xml.png").scaled(120, 120))
+                self.type.setText(f'Extensible Markup Language document ({ext})')
+            elif ext == ".zip":
+                self.icon.setPixmap(QPixmap("resources/zip.png").scaled(120, 120))
+                self.type.setText(f'Compressed file ({ext})')
+            else:
+                self.icon.setPixmap(QPixmap("resources/file.png").scaled(120, 120))
+                self.type.setText(ext)
 
     def sign_document(self):
-        hashed_document = file_hash(self.file)
-        #print(f'Priv: {self.privkey} Module: {self.module}\nDocument: {hashed_document}')
-        signature = encryption(hashed_document, self.privkey, self.module)
-        #print(f"Signature is working: {signature}")
-        path = export_signature(signature)
-
-        message = QMessageBox()
-        message.setWindowTitle("Information")
-        message.setText(f"Signature was exported successfully to:\n{path}")
-        message.setIcon(QMessageBox.Icon.Information)
-        message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
-        message.exec()
-
-    def verify_signature(self):
-        file = select_file("sign","Select a signature file")
-        signature = read_sign_file(file)
-        original_hash = decryption(signature, self.pubkey, self.module)
-        document_hash = file_hash(self.file)
 
         message = QMessageBox()
         message.setWindowTitle("Information")
 
-        if original_hash == document_hash:
-            message.setText("The signature matches the original document")
-            message.setIcon(QMessageBox.Icon.Information)
+        if self.file is None:
+            message.setText(f"Import a file for signing")
+            message.setIcon(QMessageBox.Icon.Warning)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
+        elif self.privkey is None:
+            message.setText(f"Import a private key first")
+            message.setIcon(QMessageBox.Icon.Warning)
             message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
             message.exec()
         else:
-            message.setText("The signature DOESN'T match the original document")
-            message.setIcon(QMessageBox.Icon.Information)
+            hashed_document = file_hash(self.file)
+            # print(f'Priv: {self.privkey} Module: {self.module}\nDocument: {hashed_document}')
+            signature = encryption(hashed_document, self.privkey, self.module)
+            # print(f"Signature is working: {signature}")
+            path = export_signature(signature)
+
+            if path is not None:
+                message.setText(f"Signature was exported successfully to:\n{path}")
+                message.setIcon(QMessageBox.Icon.Information)
+                message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+                message.exec()
+
+    def verify_signature(self):
+
+        message = QMessageBox()
+        message.setWindowTitle("Information")
+
+        if self.file is None:
+            message.setText(f"Import a file first")
+            message.setIcon(QMessageBox.Icon.Warning)
             message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
             message.exec()
+        elif self.pubkey is None:
+            message.setText(f"Import a public key first")
+            message.setIcon(QMessageBox.Icon.Warning)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
+        else:
 
+            file = select_file("sign", "Select a signature file")
 
+            if file is not None:
+                signature = read_sign_file(file)
+                original_hash = decryption(signature, self.pubkey, self.module)
+                document_hash = file_hash(self.file)
 
-
-
-
+                if original_hash == document_hash:
+                    message.setText("The signature matches the original document")
+                    message.setIcon(QMessageBox.Icon.Information)
+                    message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+                    message.exec()
+                else:
+                    message.setText("The signature DOESN'T match the original document")
+                    message.setIcon(QMessageBox.Icon.Information)
+                    message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+                    message.exec()
+            else:
+                message.setText(f"A signature file is needed for verification")
+                message.setIcon(QMessageBox.Icon.Warning)
+                message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+                message.exec()
 
 
 if __name__ == '__main__':
-
     """pub, priv, mod = generate_keys(112)
 
     print(f'Pubkey: {pub}, Module: {mod}')
@@ -327,10 +388,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = Window()
     sys.exit(app.exec())
-
-
-
-
-
-
-

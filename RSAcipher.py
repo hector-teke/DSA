@@ -63,7 +63,6 @@ def encryption(OT, e, n):
     for blk in text_to_vector(OT):
         #print(f'Block: {blk} ({type(blk)}), Key: {e}, Module: {n}')
         CT.append(pow(blk, e, n))
-    print(CT)
     return CT
 
 
