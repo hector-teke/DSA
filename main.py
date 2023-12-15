@@ -94,7 +94,7 @@ class Window(QWidget):
 
     def initializeUI(self):
         self.setGeometry(100, 100, 680, 370)  # PosX, PosY, Width, Height
-        self.setWindowTitle("RSA Cipher")
+        self.setWindowTitle("Digital Signature Algorithm")
         self.generate_layout()
         self.show()
 
@@ -112,9 +112,11 @@ class Window(QWidget):
         self.bits_input.resize(50, 24)  # Width x Height
         self.bits_input.move(380, keys_height)
 
+        # Buttons
+
         generate_keys_button = QPushButton(self)
-        generate_keys_button.setText("Generate\nKeys")
-        generate_keys_button.resize(70, 78)
+        generate_keys_button.setText("Generate Keys")
+        generate_keys_button.resize(160, 30)
         generate_keys_button.move(20, keys_height + 40)
         generate_keys_button.clicked.connect(self.generateKeys)
 
@@ -125,7 +127,7 @@ class Window(QWidget):
 
     def generateKeys(self):
         self.pubkey, self.privkey, self.module = generate_keys(self.bits_input.value())
-        export_keys(modulo)
+        export_keys(self.module, self.pubkey, self.privkey)
 
 
 
@@ -150,7 +152,9 @@ if __name__ == '__main__':
 
     print(f'Pubkey: {pubkey}, Module: {module}')"""
 
-
+    app = QApplication(sys.argv)
+    window = Window()
+    sys.exit(app.exec())
 
 
 
