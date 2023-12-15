@@ -19,7 +19,7 @@ def select_file(extension):
 
     return file_path
 
-def read_key_file(path):            # * for any file
+def read_key_file(path):
     with open(path, 'r') as file:
         content_base64 = file.read()
 
@@ -94,6 +94,14 @@ def export_signature(signature):
     with open(file_path, 'w') as file:
         file.write(content_base64)
     print(f"File saved at {file_path}")
+
+def read_sign_file(path):
+    with open(path, 'r') as file:
+        content_base64 = file.read()
+
+    content = base64.b64decode(content_base64).decode('utf-8')
+
+    return content
 
 
 # USER INTERFACE ################################################################################
@@ -263,6 +271,24 @@ class Window(QWidget):
         message.exec()
 
     def verify_signature(self):
+        file = select_file("sign")
+        signature = read_sign_file(file)
+        original_hash = decryption(signature, self.pubkey, self.module)
+        document_hash = file_hash(self.file)
+
+        message = QMessageBox()
+        message.setWindowTitle("Information")
+
+        if original_hash == document_hash:
+            message.setText("The signature matches the original document")
+            message.setIcon(QMessageBox.Icon.Information)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
+        else:
+            message.setText("The signature DOESN'T match the original document")
+            message.setIcon(QMessageBox.Icon.Information)
+            message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+            message.exec()
 
 
 
