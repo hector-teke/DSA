@@ -79,6 +79,22 @@ def file_hash(path):  # Compute hash of a given file
 
         return sha_hash.hexdigest()     # Return hexadecimal value of hash
 
+def export_signature(signature):
+    content_bytes = signature.encode('utf-8')
+    content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+
+    root = tk.Tk()
+    root.withdraw()
+
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".sign",
+        filetypes=[("Signature file", "*.sign")],
+    )
+
+    with open(file_path, 'w') as file:
+        file.write(content_base64)
+    print(f"File saved at {file_path}")
+
 
 # USER INTERFACE ################################################################################
 
@@ -87,13 +103,14 @@ class Window(QWidget):
     pubkey = None
     privkey = None
     module = None
+    file = None
 
     def __init__(self):
         super().__init__()
         self.initializeUI()
 
     def initializeUI(self):
-        self.setGeometry(100, 100, 680, 370)  # PosX, PosY, Width, Height
+        self.setGeometry(100, 100, 680, 350)  # PosX, PosY, Width, Height
         self.setWindowTitle("Digital Signature Algorithm")
         self.setWindowIcon(QIcon('resources/sign.png'))
         self.generate_layout()
@@ -171,7 +188,21 @@ class Window(QWidget):
         self.type.resize(280, 24)  # Width x Height
         self.type.move(320, info_height + 90)
 
+        # Signature
 
+        sign_height = 250
+
+        sign_button = QPushButton(self)
+        sign_button.setText("Sign Document")
+        sign_button.resize(320, 80)
+        sign_button.move(20, sign_height)
+        sign_button.clicked.connect(self.sign_document)
+
+        verify_button = QPushButton(self)
+        verify_button.setText("Verify Signature")
+        verify_button.resize(320, 80)
+        verify_button.move(340, sign_height)
+        verify_button.clicked.connect(self.verify_signature)
 
 
     def generateKeys(self):
@@ -187,14 +218,14 @@ class Window(QWidget):
         self.module, self.privkey = read_key_file(file)
 
     def import_file(self):
-        file = select_file("*")
-        info = os.stat(file)
+        self.file = select_file("*")
+        info = os.stat(self.file)
 
-        self.path.setText(file)
-        self.name.setText(os.path.basename(file))
+        self.path.setText(self.file)
+        self.name.setText(os.path.basename(self.file))
         self.size.setText(f'{info.st_size} bytes')
 
-        ext = os.path.splitext(file)[-1]
+        ext = os.path.splitext(self.file)[-1]
 
         if ext == ".pdf":
             self.icon.setPixmap(QPixmap("resources/pdf.png").scaled(120, 120))
@@ -217,6 +248,22 @@ class Window(QWidget):
         else:
             self.icon.setPixmap(QPixmap("resources/file.png").scaled(120, 120))
             self.type.setText(ext)
+
+
+    def sign_document(self):
+        hashed_document = file_hash(self.file)
+        signature = encryption(hashed_document, self.privkey, self.module)
+        export_signature(signature)
+
+        message = QMessageBox()
+        message.setWindowTitle("Information")
+        message.setText("Signature was exported succesfully")
+        message.setIcon(QMessageBox.Icon.Information)
+        message.addButton(QPushButton("Ok"), QMessageBox.ButtonRole.AcceptRole)
+        message.exec()
+
+    def verify_signature(self):
+
 
 
 
