@@ -1,5 +1,5 @@
 import os
-
+import hashlib
 from RSAcipher import encryption, decryption, generate_keys
 import tkinter as tk
 from tkinter import filedialog
@@ -59,8 +59,17 @@ def file_description(path):
     print(f'Name: {os.path.basename(path)}\nPath: {path}\nSize: {info.st_size} bytes')
 
 
-def file_hash(path):  # compute hash of a given file
+def file_hash(path):  # Compute hash of a given file
+    with open(path, 'rb') as file:
+        sha_hash = hashlib.sha512()
 
+        # Processing in blocks enhances efficiency
+        block = file.read(4096)
+        while len(block) > 0:
+            sha_hash.update(block)  # Process the current block
+            block = file.read(4096)
+
+        return sha_hash.hexdigest()     # Return hexadecimal value of hash
 
 if __name__ == '__main__':
 
